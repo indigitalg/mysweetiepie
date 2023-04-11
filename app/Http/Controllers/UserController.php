@@ -13,6 +13,7 @@ use App\Models\Basket;
 // use Config;
 use App\Models\Order;
 use App\Mail\SignupMail;
+use Exception;
 use Mail;
 
 
@@ -136,37 +137,62 @@ class UserController extends Controller
 	}
 
 
-	// function postSignup(Request $request)
-	// {
-	// 	$this->validate($request,['email'		=> 'bail|required|email|unique:users,email',
-	// 						'password'	=> 'bail|required|confirmed',
-	// 						'password_confirmation' => 'bail|required',
-	// 						'firstname'	=> 'bail|required',
-	// 						'lastname'	=> 'bail|required',
-	// 						'postalcode'=> 'bail|min:5|max:7',
-	// 						'city'		=> 'bail|required',
-	// 						'phone'		=> 'bail|required|numeric'],
-	// 						['required' => 'This field is required']);
+	function postSignup(Request $request)
+	{
+		$this->validate($request,['email'		=> 'bail|required|email|unique:users,email',
+							'password'	=> 'bail|required|confirmed',
+							'password_confirmation' => 'bail|required',
+							'firstname'	=> 'bail|required',
+							'lastname'	=> 'bail|required',
+							'postalcode'=> 'bail|min:5|max:7',
+							'city'		=> 'bail|required',
+							'phone'		=> 'bail|required|numeric'],
+							['required' => 'This field is required']);
+		try{
+			$user = new User();
+			$user->email 		= $request->email;
+			$user->password 	= $request->password;
+			$user->firstname 	= $request->firstname;
+			$user->lastname 	= $request->lastname;
+			$user->address  	= $request->address;
+			$user->postalcode 	= $request->postalcode;
+			$user->city 	 	= $request->city;
+			$user->province 	= $request->province;
+			$user->country  	= $request->country;
+			$user->phone    	= $request->phone;
+			$user->phone2 	 	= $request->phone2;
+			$user->type 	 	= 'customer';
+			$user->status 	 	= 1;
+			$user->save();
+			
+			Mail::to($user->email)->send(new SignupMail($user));
 
-	// 	$user = new User();
+			$url  	= "https://spadmin.indigitalapi.com/api/website/sign-up";
+			$post   = [ 'first_name' => $user->firstname,
+						'last_name' => $user->lastname,
+						'email' => $user->email,
+						'password' => $user->password,
+						'address' => $user->address,
+						'postalcode' => $user->postalcode,
+						'city' => $user->city,
+						'province' => $user->province,
+						'country' => $user->country,
+						'phone' => $user->phone];
+			
 
-	// 	$user->email 		= $request->email;
-	// 	$user->password 	= $request->password;
-	// 	$user->firstname 	= $request->firstname;
-	// 	$user->lastname 	= $request->lastname;
-	// 	$user->address  	= $request->address;
-	// 	$user->postalcode 	= $request->postalcode;
-	// 	$user->city 	 	= $request->city;
-	// 	$user->province 	= $request->province;
-	// 	$user->country  	= $request->country;
-	// 	$user->phone    	= $request->phone;
-	// 	$user->phone2 	 	= $request->phone2;
-	// 	$user->type 	 	= 'customer';
-	// 	$user->status 	 	= 1;
-	// 	$user->save();
-	// 	Mail::to($user->email)->send(new SignupMail($user));
-	// 	return view('frontend/register-thanks')->with('successMsg','Thank you for becoming a member of Sweetie Pie');
-	// }
+			$result = CurlSendPostRequest($url,$post);
+
+			return view('frontend/register-thanks')->with('successMsg','Thank you for becoming a member of Sweetie Pie');
+		}
+		catch(Exception $e){
+			return redirect()->back()->with('successMsg','Technical Issues');
+			dd($e->getMessage());
+		}
+			
+
+		
+		
+	}
 
 	function getRetrievePassword() {
 
